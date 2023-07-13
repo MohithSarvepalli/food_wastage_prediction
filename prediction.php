@@ -1,35 +1,90 @@
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap DatePicker</title>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <script src="https://unpkg.com/gijgo@1.9.14/js/gijgo.min.js" type="text/javascript"></script>
-    <link href="https://unpkg.com/gijgo@1.9.14/css/gijgo.min.css" rel="stylesheet" type="text/css" />
-</head>
-<style>
-    .myform {
-        
-        padding-top: 50px;
+<?php
+
+$date = $_POST["date"];
+
+if (!isset($date)) {
+  $date = "";
+}
+
+$chart_type = $_POST["chart_type"];
+
+if (!isset($chart_type)) {
+  $chart_type = "bar";
+}
+
+$food_wastage = predict_food_wastage($date);
+
+$food_items = array_keys($food_wastage);
+$wastage_amounts = array_values($food_wastage);
+
+if ($chart_type == "bar") {
+  echo create_bar_chart($food_items, $wastage_amounts);
+} else if ($chart_type == "pie") {
+  echo create_pie_chart($food_items, $wastage_amounts);
+}
+
+function predict_food_wastage($date) {
+  $food_wastage = array();
+
+  $csv_file = "food-data.csv";
+
+  $fp = fopen($csv_file, "r");
+
+  while ($row = fgetcsv($fp)) {
+    if ($row[0] == $date) {
+      $food_wastage[$row[4]] = $row[5];
     }
-</style>
-<body>
-    <center>
-    <h3>Please select a date for future projections</h3>
-     
-    <form action="exec.php" method="post" class="myform">
-    
-    <input id="datepicker" width="270" />
-    <script>
-        $('#datepicker').datepicker({
-            uiLibrary: 'bootstrap'
-        });
-    </script>
-    <input type="submit" value="submit" name="submit">
-    </center>
-    </form>
-</body>
+  }
 
+  fclose($fp);
 
-</html>
+  return $food_wastage;
+}
+
+function create_bar_chart($food_items, $wastage_amounts) {
+  $chart = "<html><body><canvas id='myChart' width='400' height='400'></canvas></body></html>";
+
+  $script = "<script>
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: $food_items,
+        datasets: [{
+          data: $wastage_amounts,
+          backgroundColor: ['#FF0000', '#00FF00', '#0000FF']
+        }]
+      },
+      options: {
+        title: 'Food Waste'
+      }
+    });
+  </script>";
+
+  return $chart . $script;
+}
+
+function create_pie_chart($food_items, $wastage_amounts) {
+  $chart = "<html><body><canvas id='myChart' width='400' height='400'></canvas></body></html>";
+
+  $script = "<script>
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: $food_items,
+        datasets: [{
+          data: $wastage_amounts,
+          backgroundColor: ['#FF0000', '#00FF00', '#0000FF']
+        }]
+      },
+      options: {
+        title: 'Food Waste'
+      }
+    });
+  </script>";
+
+  return $chart . $script;
+}
+
+?>
